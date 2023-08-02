@@ -21,13 +21,13 @@ submission_file = "submission.csv"
 
 # 定義資料轉換，包括擴增
 data_transform = transforms.Compose([
-    transforms.RandomResizedCrop(224),    # 隨機裁剪並縮放到指定大小
-    transforms.RandomHorizontalFlip(),    # 隨機水平翻轉
-    transforms.RandomVerticalFlip(),      # 隨機垂直翻轉
-    transforms.RandomRotation(30),        # 隨機旋轉影像（-30度到+30度之間）
-    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),  # 影像顏色調整
-    transforms.ToTensor(),                # 轉換為Tensor
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])   # 正規化
+    transforms.RandomResizedCrop(224),    
+    transforms.RandomHorizontalFlip(),    
+    transforms.RandomVerticalFlip(),      
+    transforms.RandomRotation(30),       
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1), 
+    transforms.ToTensor(),                
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  
 ])
 
 # 載入訓練資料
@@ -58,7 +58,6 @@ model.fc = nn.Linear(model.fc.in_features, num_classes)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-# 將模型移到GPU上（如果可用）
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 
@@ -70,7 +69,6 @@ train_corrects = 0
 val_corrects = 0
 
 for epoch in range(num_epochs):
-    # 訓練模式
     model.train()
     running_train_loss = 0.0
     train_corrects = 0
@@ -91,7 +89,7 @@ for epoch in range(num_epochs):
     train_accuracy = train_corrects.double() / len(train_dataset)
     print(f"Epoch [{epoch+1}/{num_epochs}] - Training Loss: {epoch_train_loss:.4f}, Training Accuracy: {train_accuracy:.4f}")
 
-    # 驗證模式
+    
     model.eval()
     running_val_loss = 0.0
     val_corrects = 0
