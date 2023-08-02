@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from PIL import Image
 
+
 # 設定一些參數
 num_classes = 12
 batch_size = 32
@@ -18,11 +19,15 @@ learning_rate = 0.001
 model_save_path = "model_resnet50.pth"
 submission_file = "submission.csv"
 
-# 定義資料轉換
+# 定義資料轉換，包括擴增
 data_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.RandomResizedCrop(224),    # 隨機裁剪並縮放到指定大小
+    transforms.RandomHorizontalFlip(),    # 隨機水平翻轉
+    transforms.RandomVerticalFlip(),      # 隨機垂直翻轉
+    transforms.RandomRotation(30),        # 隨機旋轉影像（-30度到+30度之間）
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),  # 影像顏色調整
+    transforms.ToTensor(),                # 轉換為Tensor
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])   # 正規化
 ])
 
 # 載入訓練資料
@@ -61,11 +66,14 @@ model = model.to(device)
 # 訓練和驗證模型
 train_losses = []
 val_losses = []
+train_corrects = 0
+val_corrects = 0
 
 for epoch in range(num_epochs):
     # 訓練模式
     model.train()
     running_train_loss = 0.0
+    train_corrects = 0
     for i, (inputs, labels) in enumerate(train_loader, 0):
         inputs, labels = inputs.to(device), labels.to(device)
         optimizer.zero_grad()
@@ -75,24 +83,31 @@ for epoch in range(num_epochs):
         optimizer.step()
 
         running_train_loss += loss.item()
+        _, preds = torch.max(outputs, 1)
+        train_corrects += torch.sum(preds == labels.data)
 
     epoch_train_loss = running_train_loss / len(train_loader)
     train_losses.append(epoch_train_loss)
-    print(f"Epoch [{epoch+1}/{num_epochs}] - Training Loss: {epoch_train_loss:.4f}")
+    train_accuracy = train_corrects.double() / len(train_dataset)
+    print(f"Epoch [{epoch+1}/{num_epochs}] - Training Loss: {epoch_train_loss:.4f}, Training Accuracy: {train_accuracy:.4f}")
 
     # 驗證模式
     model.eval()
     running_val_loss = 0.0
+    val_corrects = 0
     with torch.no_grad():
         for inputs, labels in val_loader:
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
             loss = criterion(outputs, labels)
             running_val_loss += loss.item()
+            _, preds = torch.max(outputs, 1)
+            val_corrects += torch.sum(preds == labels.data)
 
     epoch_val_loss = running_val_loss / len(val_loader)
     val_losses.append(epoch_val_loss)
-    print(f"Epoch [{epoch+1}/{num_epochs}] - Validation Loss: {epoch_val_loss:.4f}")
+    val_accuracy = val_corrects.double() / len(val_dataset)
+    print(f"Epoch [{epoch+1}/{num_epochs}] - Validation Loss: {epoch_val_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")
 
 # 畫出loss curve
 plt.plot(range(1, num_epochs+1), train_losses, label='Training Loss')
